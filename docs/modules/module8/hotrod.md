@@ -62,7 +62,7 @@ helm repo update
 
 `helm install --set signalFxAccessToken=TOKENHERE --set clusterName=slerner-cluster --set signalFxRealm=YOUREALMHERE --set agentVersion=RELEASEVERSIONHERE --set kubeletAPI.url=https://localhost:10250 signalfx-agent signalfx/signalfx-agent`
 
-Validate cluster looks healthy in SignalFx Kubernetes Navigator dashboard
+Validate cluster looks healthy in SignalFx Kubernetes Navigator dashboard.
 
 ------
 
@@ -110,26 +110,26 @@ kubernetes   ClusterIP      10.100.0.1       <none>                             
 
 Make note of the `CLUSTER-IP` address associated with Hotrod
 
-You can view / exercise Hotrod yourself in a browser by opening the IP:PORT as shown above i.e.
-
-https://af26ce80ef2e14c9292ae5b4bc0d2dd0-1826890352.us-east-2.elb.amazonaws.com:8080
+You can view / exercise Hotrod yourself in a browser by opening the IP:PORT as shown above next to the hotrod sevice. I.e. https://af2c...us-east-2.blc.amazonaws.com:8080 (replace with the URL you receive when you exercise above commands.)
 
 ---
 
 ### 5. Generate some traffic to the application using Apache Benchmark
+
+Use ```{CLUSTER-IP}``` from Step 4.
+
+Create some requests with an valid customer number:
 ```bash
 ab -n100 -c10 "http://{CLUSTER-IP}:8080/dispatch?customer=392&nonse=0.17041229755366172" &
 ```
 
-Create some errors with an invalid customer number
+Create some errors with an invalid customer number:
 
 ```bash
 ab -n100 -c10 "http://{CLUSTER-IP}:8080/dispatch?customer=391&nonse=0.17041229755366172" &
 ```
 
 You should now be able to exercise SignalFx APM dashboards.
-
-https://af26ce80ef2e14c9292ae5b4bc0d2dd0-1826890352.us-east-2.elb.amazonaws.com:8080
 
 ---
 
