@@ -49,7 +49,7 @@ This may take some time- ensure you see your cluster live in AWS EKS console bef
 ---
 
 ### 2. Deploy SignalFx SmartAgent to your EKS Cluster
-Check release version: https://github.com/signalfx/signalfx-agent/releases i.e. 5.1.1
+Check release version: https://github.com/signalfx/signalfx-agent/releases i.e. 5.1.0
 
 ```bash tab="Input"
 helm repo add signalfx https://dl.signalfx.com/helm-repo
