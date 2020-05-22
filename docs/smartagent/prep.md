@@ -1,14 +1,11 @@
-# SignalFx Smart Agent - Lab Summary
+# Get Data In - Lab Summary
 
 * Download the Workshop
-* Start a Multipass or AWS/EC2 instance
-* Deploy the SignalFx Smart Agent in K3s
-* Validate K3s cluster is visible in Kubernetes Navigator
-* Deploy a NGINX ReplicaSet in K3s
+* Start a Multipass[^1] or AWS/EC2 instance
+* Deploy the SignalFx Smart Agent[^2] in K3s
+* Validate Kubernetes[^3] K3s cluster is visible in Kubernetes Navigator
+* Deploy a NGINX[^4] ReplicaSet in K3s
 * Validate NGNIX metrics are flowing
-
-!!! note
-    If you have been give access to a pre-provisioned AWS/EC2 instance, you can ignore the rest of this preparation lab and go straight to the next lab [Deploying the Smart Agent in Kubernetes (K3s)](../../smartagent/k3s).
 
 ---
 
@@ -16,10 +13,13 @@
 
 === "Running Locally"
 
-    !!! abstract "Multipass"
+    !!! note "Multipass"
         Install [Multipass](https://multipass.run/) for your operating system. Make sure you are using at least version `1.2.0`.
-        
+
         On a Mac you can also install via [Homebrew](https://brew.sh/) e.g. `brew cask install multipass`
+
+    !!! info "Struggling with Multipass?"
+        Ask your instructor(s) for access to a pre-provisioned AWS/EC2 instance, you can then ignore the rest of this preparation lab and go straight to the next lab [Deploying the Smart Agent in Kubernetes (K3s)](../../smartagent/k3s).
 
 === "Running in AWS"
 
@@ -27,6 +27,8 @@
         Install [Terraform](https://www.terraform.io/downloads.html) for your operating system. Please make sure it is version `0.12.18` or above.
 
         On a Mac you can also install via [Homebrew](https://brew.sh/) e.g. `brew install terraform`. This will get around Mac OS Catalina security.
+
+---
 
 ## 2. Download App Dev Workshop
 
@@ -40,6 +42,7 @@ Regardless if you are running this lab locally or if you are going to create you
     unzip v$WSVERSION.zip
     mv app-dev-workshop-$WSVERSION workshop
     cd workshop
+    export INSTANCE=$(cat /dev/urandom | tr -dc 'a-z' | head -c4)
     ```
 
 === "Windows"
@@ -47,9 +50,14 @@ Regardless if you are running this lab locally or if you are going to create you
     !!! info
         Download the zip by clicking on the following URL <https://github.com/signalfx/app-dev-workshop/archive/v1.14.zip>.
 
-        Once downloaded, unzip the the file and rename it to `workshop`. Then, from the command prompt change into that directory.
+        Once downloaded, unzip the the file and rename it to `workshop`. Then, from the command prompt change into that directory
+        and run
 
-If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](../../smartagent/prep/#3-launch-instance) and select the **Launch AWS/EC2 instance** tab
+    ```
+    $INSTANCE = ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".tochararray() | sort {Get-Random})[0..3] -join ''
+    ```
+
+If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](../../smartagent/prep/#3-launch-instance) section and select the **Launch AWS/EC2 instance** tab
 
 ---
 
@@ -59,40 +67,21 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
 
     In this section you will  build and launch the Multipass instance which will run the Kubernetes (K3s) environment that you will use in multiple labs.
 
-    !!! important "Make sure to use your initials"
-        During the build of your Multipass instance you need to provide a name, please use your initials `[YOUR_INITIALS]-k3s` so that the value of the instance hostname is unique e.g. `rwc-k3s`
+    For [µAPM](../../apm/) module we use the Hot R.O.D[^5] application to emit Traces/Spans for SignalFx µAPM. Launch your instance with:
 
-    !!! Warning
-        In the [µAPM](../../apm/) module there are two applications available for deployment to emit Traces/Spans for SignalFx µAPM.
 
-        **Hot R.O.D Multipass min. requirements:** 1 vCPU, 5Gb Disk, 1Gb Memory
-
-        **Sock Shop Multipass min. requirements:** 4 vCPU, 15Gb Disk, 8Gb Memory
-
-    Ask which version is going to be used as part of this Workshop, then select either the Hot R.O.D or Sock Shop Multipass launch parameters. Lines highlighted in yellow need to be edited:
-    === "Hot R.O.D"
-
-        ```text hl_lines="2"
-        multipass launch \
-        --name [YOUR_INITIALS]-k3s \
-        --cloud-init cloud-init/k3s.yaml
-        ```
-
-    === "Sock Shop"
-
-        ```text hl_lines="2"
-        multipass launch \
-        --name [YOUR_INITIALS]-k3s \
-        --cloud-init cloud-init/k3s.yaml \
-        --cpus 4 --disk 15G --mem 8G
-        ```
+    ```text
+    multipass launch \
+    --name $INSTANCE \
+    --cloud-init cloud-init/k3s.yaml
+    ```
 
     Once the instance has been successfully created (this can take several minutes), shell into it.
 
     === "Input"
 
-        ```bash hl_lines="1"
-        multipass shell [YOUR_INITIALS]-k3s
+        ```bash
+        multipass shell $INSTANCE
         ```
 
     === "Output"
@@ -107,10 +96,13 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         To run a command as administrator (user "root"), use "sudo <command>".
         See "man sudo_root" for details
 
-        ubuntu@rwc-k3s:~$
+        Waiting for cloud-init status...
+        Your instance is ready!
+
+        ubuntu@d823-k3s:~$
         ```
 
-    Once your instance presents you with the App Dev logo, you have completed the preparation for your Multipass instance and can go directly to  the next lab [Deploying the Smart Agent in K3s](../../smartagent/k3s).
+    Once your instance presents you with the App Dev logo, you have completed the preparation for your Multipass instance and can go directly to  the next lab [Deploy the Smart Agent in K3s](../../smartagent/k3s).
 
 === "Launch AWS/EC2 instance"
 
@@ -120,13 +112,9 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         You will need access to an AWS account to obtain both `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 
     !!! warning "Minimum requirements"
-        In the [µAPM](../../apm/) module there are two applications available for deployment to emit Traces/Spans for SignalFx µAPM.
+        For the [µAPM](../../apm/) module we are using the Hot R.O.D. application.  The minimum requirements are:
 
         **Hot R.O.D AWS/EC2 Instance min. requirements:** _t2.micro_ 1 vCPU, 8Gb Disk, 1Gb Memory
-
-        **Sock Shop AWS/EC2 Instance min. requirements:** _t2.large_ 2 vCPU, 15Gb Disk, 8Gb Memory
-
-    Ask which version is going to be used as part of this Workshop, then select either the Hot R.O.D or Sock Shop option when using terraform to launch your instance.
 
     **Prepare Terraform**
 
@@ -134,7 +122,7 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
 
     === "Input"
 
-        ```bash 
+        ```bash
         cd ec2
         terraform init -upgrade
         ```
@@ -182,9 +170,9 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
 
     === "Input"
 
-        ```bash hl_lines="1 2" 
-        export AWS_ACCESS_KEY_ID="[YOUR_AWS_ACCESS_KEY_ID]"
-        export AWS_SECRET_ACCESS_KEY="[YOUR_AWS_SECRET_ACCESS_KEY]"
+        ```bash
+        export AWS_ACCESS_KEY_ID="{==YOUR_AWS_ACCESS_KEY_ID==}"
+        export AWS_SECRET_ACCESS_KEY="{==YOUR_AWS_SECRET_ACCESS_KEY==}"
         echo $AWS_ACCESS_KEY_ID $AWS_SECRET_ACCESS_KEY
         ```
 
@@ -197,11 +185,8 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
     Once you have confirmed that you have set you `AWS_SECRET_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY` correctly, you can start with the planning phase.
 
     !!! important Required input for Terraform
-        **Instance Count**: (Type **1** to create a single Instance)
 
-        **Desired AWS Region**: (Any AWS region by name, for example **us-west-2**) 
-        
-        **Instance Type**:      (Type **1** for Hot R.O.D. instance type or **2** for the Sock Shop instance type)
+        **Desired AWS Region**: (Any AWS region by name, for example **us-west-2**)
 
         Please remember these values as you will need them again for the planning phase and when you use Terraform to destroy your AWS/EC2 instance.
 
@@ -209,19 +194,8 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
 
     === "Input"
 
-        ```bash hl_lines="1"
-        terraform plan -out=[YOUR_INITIALS].out
-        ```
-
-    Next enter 1 to to create a single AWS/EC2 instance.
-
-    === "Example"
-
-        ```bash hl_lines="4"
-        var.aws_instance_count
-        Instance Count
-
-        Enter a value: 1
+        ```bash
+        terraform plan -var="aws_instance_count=1" -var="instance_type=1" -out=app-dev-plan.out
         ```
 
     Enter your desired AWS Region where you wish to run the AWS/EC2 instance e.g. **us-west-2**
@@ -233,17 +207,6 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         Provide the desired region
 
         Enter a value: us-west-2
-        ```
-
-    Next, enter **1** for Hot R.O.D. instance size (_t2.micro_) or **2** for Sock Shop instance size (_t2.large_)
-
-    === "Example"
-
-        ```bash  hl_lines="4"
-        var.instance_type
-        Select instance type required (1 = Hot R.O.D. 2 = Sock Shop)
-        
-        Enter a value: 1
         ```
 
     === "Output"
@@ -264,23 +227,23 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         Terraform will perform the following actions:
 
         **(BIG WALL OF AWS RELATED TEXT REMOVED)**
-        
+
         Plan: 2 to add, 0 to change, 0 to destroy.
 
         ------------------------------------------------------------------------
 
-        This plan was saved to: [YOUR_INITIALS].out
+        This plan was saved to: app-dev-plan.out
 
         To perform exactly these actions, run the following command to apply:
-        terraform apply "[YOUR_INITIALS].out"
+        terraform apply "app-dev-plan.out"
         ```
 
     If there are no errors in the output and terraform has created your output file, you can start the apply phase of Terraform. This will create the AWS/EC2 instance.
 
     === "Input"
 
-        ```bash hl_lines="1"
-        terraform apply "[YOUR_INITIALS].out"
+        ```bash
+        terraform apply "app-dev-plan.out"
         ```
 
     === "Output"
@@ -305,11 +268,11 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         Outputs:
 
         ip = [
-        "YOUR_IP-ADDRESS",
+        "YOUR IP ADDRESS",
         ] 
         ```
 
-    Verify there are no errors and copy the ip address that you see in the green output.  
+    Verify there are no errors and copy the ip address that you see in the green output.
 
     ---
 
@@ -321,15 +284,15 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
     === "Input"
 
         ```bash hl_lines="1"
-        ssh ubuntu@[YOUR_IP-ADDRESS]
+        ssh ubuntu@YOUR IP ADDRESS
         ```
 
     === "Output"
 
         ```text
-        The authenticity of host '[YOUR_IP-ADDRESS] ([YOUR_IP-ADDRESS])' can't be established.
+        The authenticity of host 'YOUR IP ADDRESS (YOUR IP ADDRESS)' can't be established.
         ECDSA key fingerprint is SHA256:XdqN55g0z/ER660PARM+mGqtpYpwM3333YS9Ac8Y9hLY.
-        Are you sure you want to continue connecting (yes/no/[fingerprint])?  
+        Are you sure you want to continue connecting (yes/no/[fingerprint])?
         ```
 
     Please confirm that you wish to continue by replying to the prompt with `yes`
@@ -342,9 +305,9 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
 
     === "Output"
         ```text
-        Warning: Permanently added 'YOUR_IP-ADDRESS' (ECDSA) to the list of known hosts.
+        Warning: Permanently added 'YOUR IP ADDRESS' (ECDSA) to the list of known hosts.
 
-        ubuntu@YOUR_IP-ADDRESS's password:
+        ubuntu@YOUR IP ADDRESS's password:
         ```
 
     To login to your instance please use the password provided by the Workshop host.
@@ -352,7 +315,7 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
     === "Input"
 
         ```bash hl_lines="1"
-        ubuntu@[YOUR_IP-ADDRESS]'s password: [PASSWORD]
+        ubuntu@YOUR IP ADDRESS's password: PASSWORD
         ```
 
     === "Output"
@@ -367,7 +330,19 @@ If you are using your own AWS/EC2 instance please skip to [3. Launch Instance](.
         To run a command as administrator (user "root"), use "sudo <command>".
         See "man sudo_root" for details
 
+
+        Waiting for cloud-init status...
+        Your instance is ready!
+
         ubuntu@ip-172-31-41-196:~$
         ```
 
-    Once your instance presents you with the App Dev logo, you have completed the preparation for your AWS/EC2 instance and can go directly to  the next lab [Deploying the Smart Agent in K3s](../../smartagent/k3s).
+    Once your instance presents you with the App Dev logo, make sure you see `Your instance is ready!` in the output.
+
+    You have now completed the preparation for your AWS/EC2 instance and can go directly to  the next lab [Deploy the Smart Agent in K3s](../../smartagent/k3s).
+
+[^1]: Multipass is a lightweight VM manager for Linux, Windows and macOS. It's designed for developers who want a fresh Ubuntu environment with a single command. It uses KVM on Linux, Hyper-V on Windows and HyperKit on macOS to run the VM with minimal overhead. It can also use VirtualBox on Windows and macOS. Multipass will fetch images for you and keep them up to date.
+[^2]: The SignalFx Smart Agent gathers host performance, application, and service-level metrics from both containerized and non-container environments. The Smart Agent installs with more than 100 bundled monitors for gathering data, including Python-based plug-ins such as Mongo, Redis, and Docker.
+[^3]: [What is Kubernetes?](https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/)
+[^4]: [What is NGINX?](https://www.nginx.com/resources/glossary/nginx/)
+[^5]: [What is Hot R.O.D.?](https://github.com/jaegertracing/jaeger/tree/master/examples/hotrod)

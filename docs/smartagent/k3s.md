@@ -7,7 +7,7 @@
 
 ## 1. Obtain SignalFx Access Token
 
-You will need to obtain your Access Token from the SignalFx UI once Kubernetes is running.
+You will need to obtain your Access Token[^1] from the SignalFx UI once Kubernetes is running.
 
 You can find your Access Token by clicking on your profile icon on the top right of the SignalFx UI. Then select **Organization Settings → Access Tokens**.
 
@@ -25,15 +25,13 @@ The Realm can be found in the middle of the page within the Organizations sectio
 
 ## 2. Use Helm to deploy agent
 
-Create the following variables to use in the proceeding helm install command, replacing `[VARIABLE]` with the appropriate values. For instance, if your realm is `us1`, you would `export REALM=us1`.
+Create the following variables to use in the proceeding helm install command, replacing the highlighted `{==VARIABLE==}` with the appropriate values. For instance, if your realm is `us1`, you would `export REALM=us1`.
 
 === "Input"
 
     ```
-    export ACCESS_TOKEN=[ACCESS_TOKEN]
-    export REALM=[REALM e.g. us1]
-    export INITIALS=[YOUR_INITIALS e.g. RWC]
-    export VERSION=[VERSION e.g. 5.1.2]
+    export ACCESS_TOKEN={==ACCESS TOKEN, from organisation page==}
+    export REALM={==REALM e.g. us1==}
     ```
 
 !!! note
@@ -55,22 +53,16 @@ Ensure the latest version of the SignalFx Helm repository
     helm repo update
     ```
 
-Install the Smart Agent Helm chart with the following commands:
+Install the Smart Agent Helm chart with the following commands, do **not** edit this:
 
 === "Input"
 
     ```
-    : ${ACCESS_TOKEN:? needs to be set}
-    : ${REALM:? needs to be set}
-    : ${INITIALS:? needs to be set}
-    : ${VERSION:? needs to be set}
-    sed -i -e 's/\[INITIALS\]/'"$INITIALS"'/' ~/workshop/k3s/values.yaml
     helm install \
     --set signalFxAccessToken=$ACCESS_TOKEN \
-    --set clusterName=$INITIALS-SFX-WORKSHOP \
+    --set clusterName=$(hostname)-SFX-WORKSHOP \
     --set kubeletAPI.url=https://localhost:10250  \
     --set signalFxRealm=$REALM  \
-    --set agentVersion=$VERSION \
     --set traceEndpointUrl=https://ingest.$REALM.signalfx.com/v2/trace \
     --set gatherDockerMetrics=false \
     signalfx-agent signalfx/signalfx-agent \
@@ -150,3 +142,5 @@ This will drill down to the node level.  Next, open the side bar by clicking on 
 Once it is open, you can use the slider on the side to explore the various charts relevant to your cluster/node: CPU, Memory, Network, Events etc.
 
 ![Sidebar metrics](../images/smartagent/M3-l1-explore-metrics.png)
+
+[^1]: Access tokens (sometimes called org tokens) are long-lived organization-level tokens. By default, these tokens persist for 5 years, and thus are suitable for embedding into emitters that send data points over long periods of time, or for any long-running scripts that call the SignalFx API.

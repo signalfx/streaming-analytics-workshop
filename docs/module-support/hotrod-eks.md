@@ -19,8 +19,6 @@ Create the following environment variables for **SignalFx** and **AWS** to use i
     ```
     export ACCESS_TOKEN=[ACCESS_TOKEN]
     export REALM=[REALM e.g. us1]
-    export INITIALS=[YOUR_INITIALS e.g. RWC]
-    export VERSION=[VERSION e.g. 5.1.2]
     ```
 
 === "AWS"
@@ -30,7 +28,7 @@ Create the following environment variables for **SignalFx** and **AWS** to use i
     export AWS_SECRET_ACCESS_KEY=[AWS Secret Access Key]
     export AWS_DEFAULT_REGION=[e.g. us-east-1]
     export AWS_DEFAULT_OUTPUT=json
-    export EKS_CLUSTER_NAME=$INITIALS-APP-DEV
+    export EKS_CLUSTER_NAME=$(hostname)-APP-DEV
     ```
 
 You can check for the latest SignalFx Smart Agent release on [Github](https://github.com/signalfx/signalfx-agent/releases).
@@ -154,12 +152,10 @@ Install the Smart Agent Helm chart with the following commands:
 === "Input"
 
     ```
-    sed -i -e 's/\[INITIALS\]/'"$INITIALS"'/' ~/workshop/k3s/values.yaml
     helm install \
     --set signalFxAccessToken=$ACCESS_TOKEN \
     --set clusterName=$EKS_CLUSTER_NAME \
     --set signalFxRealm=$REALM \
-    --set agentVersion=$VERSION \
     --set kubeletAPI.url=https://localhost:10250 \
     --set traceEndpointUrl=https://ingest.$REALM.signalfx.com/v2/trace \
     signalfx-agent signalfx/signalfx-agent \
@@ -251,12 +247,12 @@ You can view / exercise Hot R.O.D. yourself in a browser by opening the `EXTERNA
 
 ---
 
-## 7. Generate some traffic to the application using Apache Benchmark
+## 7. Generate some traffic to the application using Siege Benchmark
 
 === "Input"
 
     ```bash
-    ab -n100 -c10 "http://$HOTROD_ENDPOINT/dispatch?customer=392&nonse=0.17041229755366172"
+    siege -r10 -c10 "http://$HOTROD_ENDPOINT/dispatch?customer=392&nonse=0.17041229755366172"
     ```
 
 Create some errors with an invalid customer number
@@ -264,7 +260,7 @@ Create some errors with an invalid customer number
 === "Input"
 
     ```bash
-    ab -n100 -c10 "http://$HOTROD_ENDPOINT/dispatch?customer=391&nonse=0.17041229755366172"
+    siege -r10 -c10 "http://$HOTROD_ENDPOINT/dispatch?customer=391&nonse=0.17041229755366172"
     ```
 
 You should now be able to exercise SignalFx APM dashboards.

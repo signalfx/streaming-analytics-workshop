@@ -1,6 +1,7 @@
-# Using Terraform - Lab Summary
+# Monitoring as Code - Lab Summary
 
-* Initialize the SignalFx Provider.
+* Use Terraform[^1] to manage SignalFx Dashboards and Detectors
+* Initialize the Terraform SignalFx Provider[^2].
 * Run Terraform to create SignalFx detectors and dashboards from code using the SignalFx Terraform Provider.
 * See how Terraform can also delete detectors and dashboards.
 
@@ -21,9 +22,9 @@ The environment variables needed should already be set from [Deploy the Smart Ag
 === "Input"
 
     ```
-    export ACCESS_TOKEN=[ACCESS_TOKEN]
-    export REALM=[REALM e.g. us1]
-    export INITIALS=[YOUR_INITIALS e.g. RWC]
+    export ACCESS_TOKEN={==SIGNALFX_ACCESS_TOKEN==}
+    export REALM={==REALM e.g. us1==}
+    export PREFIX=$(cat /dev/urandom | base64 | tr -dc 'A-Z' | head -c4)
     ```
 
 Initialize Terraform and upgrade to the latest version of the SignalFx Terraform Provider
@@ -78,18 +79,18 @@ Initialize Terraform and upgrade to the latest version of the SignalFx Terraform
     commands will detect it and remind you to do so if necessary.
     ```
 
-Create a new workspace, replace `[WORKSPACE_NAME]` with what you want your workspace to be called:
+Create a new workspace:
 
 === "Input"
 
     ``` bash
-    terraform workspace new [WORKSPACE_NAME]
+    terraform workspace new workshop
     ```
 
 === "Output"
 
     ```text
-    Created and switched to workspace "my_workspace"!
+    Created and switched to workspace "workspace"!
 
     You're now on a new, empty workspace. Workspaces isolate their state,
     so if you run "terraform plan" Terraform will not see any existing state
@@ -105,7 +106,7 @@ Review the execution plan.
 === "Input"
 
     ``` bash
-    terraform plan -var="access_token=$ACCESS_TOKEN" -var="realm=$REALM" -var="sfx_prefix=$INITIALS"
+    terraform plan -var="access_token=$ACCESS_TOKEN" -var="realm=$REALM" -var="sfx_prefix=$PREFIX"
     ```
 
 If the plan executes successfully, we can go ahead and apply:
@@ -117,7 +118,7 @@ If the plan executes successfully, we can go ahead and apply:
 === "Input"
 
     ``` bash
-    terraform apply -var="access_token=$ACCESS_TOKEN" -var="realm=$REALM" -var="sfx_prefix=$INITIALS"
+    terraform apply -var="access_token=$ACCESS_TOKEN" -var="realm=$REALM" -var="sfx_prefix=$PREFIX"
     ```
 
 Validate that the detectors were created, under the _**ALERTS → Detectors**_, you should see a list of new detectors with the a prefix of your initials:
@@ -128,19 +129,15 @@ Validate that the detectors were created, under the _**ALERTS → Detectors**_, 
 
 ## 4. Destroy all your hard work
 
-You will first need to ensure you are in the correct workspace, replace `[WORKSPACE_NAME]` with the name created in the initial setup)
+You will first need to ensure you are in the the workspace you created in **Step #1**:
 
 === "Input"
 
     ```text
-    terraform workspace select [WORKSPACE_NAME]
+    terraform workspace select workshop
     ```
 
 Destroy all Detectors and Dashboards that were previously applied.
-
-!!! info
-
-    The `var=”sfx_prefix=$INITIALS”` is not required!
 
 === "Input"
 
@@ -151,3 +148,12 @@ Destroy all Detectors and Dashboards that were previously applied.
 Validate all the detectors have been removed by navigating to _**ALERTS → Detectors**_
 
 ![Destroyed](../images/mac/destroy.png)
+
+[^1]:
+    Terraform is a tool for building, changing, and versioning infrastructure safely and efficiently. Terraform can manage existing and popular service providers as well as custom in-house solutions.
+
+    Configuration files describe to Terraform the components needed to run a single application or your entire datacenter. Terraform generates an execution plan describing what it will do to reach the desired state, and then executes it to build the described infrastructure. As the configuration changes, Terraform is able to determine what changed and create incremental execution plans which can be applied.
+
+    The infrastructure Terraform can manage includes low-level components such as compute instances, storage, and networking, as well as high-level components such as DNS entries, SaaS features, etc.
+[^2]:
+    A provider is responsible for understanding API interactions and exposing resources. Providers generally are an IaaS (e.g. Alibaba Cloud, AWS, GCP, Microsoft Azure, OpenStack), PaaS (e.g. Heroku), or SaaS services (e.g. SignalFx, Terraform Cloud, DNSimple, Cloudflare).
